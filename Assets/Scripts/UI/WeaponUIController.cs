@@ -1,7 +1,6 @@
 using System;
 using TMPro;
 using UnityEngine;
-using UnityEngine.EventSystems;
 using UnityEngine.UI;
 
 public class WeaponUIController : MonoBehaviour {
@@ -30,17 +29,23 @@ public class WeaponUIController : MonoBehaviour {
     [SerializeField] private Sprite[] weaponSprites;
     [SerializeField] private Transform activeBorder;
     [SerializeField] private Image weaponImage;
+    public UIStateAnimator stateAnimator;
 
     void Awake() {
         instance_ = this;
 
         weaponImage = GetComponent<Image>();
+        stateAnimator = GetComponent<UIStateAnimator>();
 
-        sword = new Sword(10);
-        staff = new Staff(3);
-        bow = new Bow(5);
+        sword = new Sword();
+        staff = new Staff();
+        bow = new Bow();
 
         ChangeWeapon(1);
+    }
+
+    public void AnimateAttack() {
+        stateAnimator.SetNextState();
     }
 
     public void ChangeWeapon(int weaponTypeIndex) {
@@ -53,8 +58,8 @@ public class WeaponUIController : MonoBehaviour {
             _ => sword,
         };
 
-        weaponImage.sprite = weaponSprites[weaponTypeIndex];
         UpdateActivatedButton(weaponTypeIndex);
+        UpdateAnimationSets(weaponTypeIndex);
         UpdateResourceExhibition();
 
         currentWeapon.VerifyShouldRecoverOverTime();
@@ -69,9 +74,14 @@ public class WeaponUIController : MonoBehaviour {
         }
     }
 
+    private void UpdateAnimationSets(int weaponTypeIndex) {
+        stateAnimator.SetAnimationFrames(weaponBorders[weaponTypeIndex].transform.parent.GetComponent<WeaponAnimationSetHolder>().animations); 
+        stateAnimator.SetAnimationStates(weaponBorders[weaponTypeIndex].transform.parent.GetComponent<WeaponAnimationSetHolder>().states); 
+    }
+
     public void UpdateResourceExhibition() {
         if (currentWeapon != null) {
-            ResourceBarManager.Instance.UpdateResourceBar(CurrentWeapon.SpendResourceValue);
+            ResourceBarUIManager.Instance.UpdateResourceBar(CurrentWeapon.SpendResourceValue);
         }
         else {
             Debug.LogError("CurrentWeapon is not set when updating resource text.");

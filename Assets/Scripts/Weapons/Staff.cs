@@ -3,55 +3,46 @@ using UnityEngine;
 
 //INHERITANCE
 public class Staff : Weapon {
-    public Staff(int resourceAmount) {
-        MaxResource = resourceAmount;
+    public Staff() {
+        MaxResource = 3;
         SpendResourceValue = 1;
     }
 
-    //POLYMORPHISM
-    public override void Attack() {
-        SpendResource(SpendResourceValue);
+    private int currentCombo;
+    private float comboResetTime = 1.0f; // Tempo máximo entre ataques do combo
+    private Coroutine resetComboCoroutine;
+    public override bool Attack() {
+        if (base.Attack()) {
+
+            UIStateAnimator animator = WeaponUIController.Instance.stateAnimator;
+            CoroutineManager coroutineManager = CoroutineManager.Instance;
+
+            if (currentCombo >= 3) {
+                ResetCombo();
+            }
+
+            currentCombo++;
+            animator.SetNextState();
+
+            if (resetComboCoroutine != null) {
+                coroutineManager.StopCoroutine(resetComboCoroutine);
+            }
+            resetComboCoroutine = coroutineManager.StartCoroutine(ResetComboAfterDelay());
+            return true;
+        }
+
+        return false;
     }
 
-    public override void RecoverResource(int amout) {
-        if (Resource + amout <= MaxResource) {
-            Resource += amout;
-        }
-        else {
-            Resource = MaxResource;
-        }
+    private IEnumerator ResetComboAfterDelay() {
+        yield return new WaitForSeconds(comboResetTime);
+        ResetCombo();
     }
 
-    protected override IEnumerator RecoverResourceOverTime() {
-        IsRecovering = true;
+    private void ResetCombo() {
+        UIStateAnimator animator = WeaponUIController.Instance.stateAnimator;
 
-        if (Resource == MaxResource) {
-            IsRecovering = false;
-            CoroutineManager.Instance.StopResourceRecovering(RecoverResourceOverTime());
-            yield break;
-        }
-
-        while (Resource < MaxResource) {
-            yield return new WaitForSeconds(RecoverTimeSeconds);
-            RecoverResource(1);
-            WeaponUIController.Instance.UpdateResourceExhibition();
-        }
-    }
-
-    public override void SpendResource(int amount) {
-        if (Resource - amount >= 0) {
-            Resource -= amount;
-        }
-        else {
-            return;
-        }
-
-        WeaponUIController.Instance.UpdateResourceExhibition();
-        CoroutineManager.Instance.StartResourceRecovering(RecoverResourceOverTime());
-    }
-    public override void VerifyShouldRecoverOverTime() {
-        if (Resource < MaxResource) {
-            CoroutineManager.Instance.StartResourceRecovering(RecoverResourceOverTime());
-        }
+        animator.ResetState();
+        currentCombo = 0;
     }
 }

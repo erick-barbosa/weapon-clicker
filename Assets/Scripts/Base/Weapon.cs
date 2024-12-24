@@ -2,7 +2,7 @@ using System.Collections;
 using UnityEngine;
 
 //ABSTRACTION
-public abstract class Weapon {
+public class Weapon {
     //ENCAPSULATION
     public int MaxResource {
         get => maxResource_;
@@ -24,9 +24,50 @@ public abstract class Weapon {
     public int SpendResourceValue { get; protected set; } = 1;
     public bool IsRecovering{ get; protected set; }
 
-    public abstract void Attack();
-    public abstract void SpendResource(int amount);
-    public abstract void RecoverResource(int amout);
-    protected abstract IEnumerator RecoverResourceOverTime();
-    public abstract void VerifyShouldRecoverOverTime();
+    public virtual bool Attack() {
+        return SpendResource(SpendResourceValue);
+    }
+
+    public virtual void RecoverResource(int amout) {
+        if (Resource + amout <= MaxResource) {
+            Resource += amout;
+        }
+        else {
+            Resource = MaxResource;
+        }
+    }
+
+    protected virtual IEnumerator RecoverResourceOverTime() {
+        IsRecovering = true;
+
+        if (Resource == MaxResource) {
+            IsRecovering = false;
+            CoroutineManager.Instance.StopResourceRecovering(RecoverResourceOverTime());
+            yield break;
+        }
+
+        while (Resource < MaxResource) {
+            yield return new WaitForSeconds(RecoverTimeSeconds);
+            RecoverResource(1);
+            WeaponUIController.Instance.UpdateResourceExhibition();
+        }
+    }
+
+    public virtual bool SpendResource(int amount) {
+        if (Resource - amount < 0) {
+            return false; 
+        }
+
+        Resource -= amount;
+
+        WeaponUIController.Instance.UpdateResourceExhibition();
+        CoroutineManager.Instance.StartResourceRecovering(RecoverResourceOverTime());
+
+        return true;    
+    }
+    public virtual void VerifyShouldRecoverOverTime() {
+        if (Resource < MaxResource) {
+            CoroutineManager.Instance.StartResourceRecovering(RecoverResourceOverTime());
+        }
+    }
 }
