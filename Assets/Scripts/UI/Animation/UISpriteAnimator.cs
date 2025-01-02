@@ -5,7 +5,7 @@ using UnityEngine.UI;
 public class UISpriteAnimator : MonoBehaviour, IPointerEnterHandler, IPointerExitHandler {
     [SerializeField] private Image targetImage; 
     [SerializeField] private Sprite[] animationFrames; 
-    [SerializeField] private Sprite starterFrameSprite; 
+    [SerializeField] private Sprite mainFrameSprite; 
 
     [SerializeField] private float frameRate = 20f; 
     [SerializeField] private float scaleMultiplier = 1.1f; 
@@ -30,12 +30,6 @@ public class UISpriteAnimator : MonoBehaviour, IPointerEnterHandler, IPointerExi
 
     private void ResetActivationFlag() {
         justActivated = false;
-    }
-
-    
-
-    private void Start() {
-        starterFrameSprite = GetComponent<Image>().sprite;
     }
 
     private void Update() {
@@ -80,6 +74,6 @@ public class UISpriteAnimator : MonoBehaviour, IPointerEnterHandler, IPointerExi
         shouldAnimate = false;
         gameObject.transform.localScale = Vector3.one;
         currentFrame = 0;
-        targetImage.sprite = starterFrameSprite;
+        targetImage.sprite = mainFrameSprite;
     }
 }

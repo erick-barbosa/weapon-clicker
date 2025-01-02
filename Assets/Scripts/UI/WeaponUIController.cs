@@ -1,5 +1,4 @@
-using System;
-using TMPro;
+using System.Collections.Generic;
 using UnityEngine;
 using UnityEngine.UI;
 
@@ -9,7 +8,7 @@ public class WeaponUIController : MonoBehaviour {
     public static WeaponUIController Instance {
         get {
             if (instance_ == null) {
-                GameObject obj = new GameObject("CoroutineManager");
+                GameObject obj = new GameObject("Weapon");
                 instance_ = obj.AddComponent<WeaponUIController>();
                 DontDestroyOnLoad(obj);
             }
@@ -24,11 +23,12 @@ public class WeaponUIController : MonoBehaviour {
     private Bow bow;
     private Staff staff;
 
-    [SerializeField] private TextMeshProUGUI resourceText; 
     [SerializeField] private Transform[] weaponBorders;
     [SerializeField] private Sprite[] weaponSprites;
     [SerializeField] private Transform activeBorder;
     [SerializeField] private Image weaponImage;
+    public AudioSource weaponSoundSource;
+    public List<AudioClip> weaponSoundClips;
     public UIStateAnimator stateAnimator;
 
     void Awake() {
@@ -36,6 +36,7 @@ public class WeaponUIController : MonoBehaviour {
 
         weaponImage = GetComponent<Image>();
         stateAnimator = GetComponent<UIStateAnimator>();
+        weaponSoundSource = GetComponent<AudioSource>();
 
         sword = new Sword();
         staff = new Staff();
@@ -44,17 +45,13 @@ public class WeaponUIController : MonoBehaviour {
         ChangeWeapon(1);
     }
 
-    public void AnimateAttack() {
-        stateAnimator.SetNextState();
-    }
-
     public void ChangeWeapon(int weaponTypeIndex) {
-        WeaponType weaponType = (WeaponType)weaponTypeIndex;
+        WeaponName weaponType = (WeaponName)weaponTypeIndex;
 
         currentWeapon = weaponType switch {
-            WeaponType.Bow => bow,
-            WeaponType.Sword => sword,
-            WeaponType.Staff => staff,
+            WeaponName.Bow => bow,
+            WeaponName.Sword => sword,
+            WeaponName.Staff => staff,
             _ => sword,
         };
 
@@ -67,7 +64,10 @@ public class WeaponUIController : MonoBehaviour {
 
     public void OnWeaponClick() {
         if (currentWeapon != null) {
-            currentWeapon.Attack();
+            if (currentWeapon.Attack()) {
+                weaponSoundSource.PlayOneShot(weaponSoundClips[currentWeapon.GetCurrentCombo() - 1]);
+                Enemy.Instance.TakeDamage(currentWeapon.SpendResourceValue);
+            }
         }
         else {
             Debug.LogError("CurrentWeapon is not set.");
@@ -75,8 +75,10 @@ public class WeaponUIController : MonoBehaviour {
     }
 
     private void UpdateAnimationSets(int weaponTypeIndex) {
-        stateAnimator.SetAnimationFrames(weaponBorders[weaponTypeIndex].transform.parent.GetComponent<WeaponAnimationSetHolder>().animations); 
-        stateAnimator.SetAnimationStates(weaponBorders[weaponTypeIndex].transform.parent.GetComponent<WeaponAnimationSetHolder>().states); 
+        var animationHolder = weaponBorders[weaponTypeIndex].transform.parent.GetComponent<WeaponAnimationSetHolder>();
+
+        stateAnimator.SetAnimation(animationHolder.animations, animationHolder.states); 
+        weaponSoundClips = animationHolder.attackSounds;
     }
 
     public void UpdateResourceExhibition() {
@@ -90,16 +92,13 @@ public class WeaponUIController : MonoBehaviour {
 
     private void UpdateActivatedButton(int index) {
         if (activeBorder != null) {
-            activeBorder.transform.parent.GetComponent<UISpriteAnimator>().ShouldAnimateExternal = true;
             activeBorder.gameObject.SetActive(false);
         }
         activeBorder = weaponBorders[index].transform;
         activeBorder.gameObject.SetActive(true);
-        activeBorder.transform.parent.GetComponentInParent<UISpriteAnimator>().ShouldAnimateExternal = false;
-        activeBorder.transform.parent.GetComponent<UISpriteAnimator>().ResetSpriteAnimation();
     }
 
-    public enum WeaponType {
+    public enum WeaponName {
         Bow,
         Sword,
         Staff

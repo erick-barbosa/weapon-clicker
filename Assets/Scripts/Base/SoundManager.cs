@@ -8,7 +8,7 @@ public class SoundManager : MonoBehaviour {
     public static SoundManager Instance {
         get {
             if (instance_ == null) {
-                GameObject obj = new GameObject("CoroutineManager");
+                GameObject obj = new GameObject("SoundManager");
                 instance_ = obj.AddComponent<SoundManager>();
                 DontDestroyOnLoad(obj);
             }

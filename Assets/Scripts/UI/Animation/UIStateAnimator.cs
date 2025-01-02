@@ -12,20 +12,22 @@ public class UIStateAnimator : MonoBehaviour {
     [SerializeField] private float frameRate;
     private bool isAnimating = false;
     [SerializeField] private bool shouldWaitAnimationFinish = true;
+    [SerializeField] private bool shouldAnimateOnStart = true;
+
+    private void OnEnable() {
+        stateImage = GetComponent<Image>();
+    }
 
     private void Awake() {
-        stateImage = GetComponent<Image>();
         maxState = stateSprites.Count - 1;
-        if (state == 5) {
+        if (shouldAnimateOnStart) {
             AnimateAll();
         }
     }
 
-    public void SetAnimationFrames(List<AnimationSet> animations) {
-        animationFrames = animations;
-    }
-    public void SetAnimationStates(List<Sprite> animations) {
-        stateSprites = animations;
+    public void SetAnimation(List<AnimationSet> animationSet, List<Sprite> animationSprites) {
+        animationFrames = animationSet;
+        stateSprites = animationSprites;
         ResetState();
     }
 
@@ -38,16 +40,39 @@ public class UIStateAnimator : MonoBehaviour {
             OnChangeState();
         }
     }
+    
+    public void SetStateTemporary() {
+        SetNextState();
+        StartCoroutine(ResetStateAfterAnimation());
+    }
+
     public void SetPreviousState() {
         if (state - 1 > 0 && !isAnimating) {
             //OnChangeState();
             state--;
         }
     }
+
     public void ResetState() {
         state = 0;
+        StartCoroutine(ChangeState());
+        isAnimating = false;        
+    }
+
+    private IEnumerator ChangeState() {
+        yield return new WaitForEndOfFrame();
         stateImage.sprite = stateSprites[state];
-        isAnimating = false;
+    }
+
+    private IEnumerator ResetStateAfterAnimation() {
+        // Aguarde até que a animação termine
+        while (isAnimating) {
+            yield return null;
+        }
+
+        // Reseta o estado
+        Debug.Log("Reset");
+        ResetState();
     }
 
     private void OnChangeState() {
@@ -57,8 +82,9 @@ public class UIStateAnimator : MonoBehaviour {
         }
 
         StopAllCoroutines();
-        StartCoroutine(Animate());
+        StartCoroutine(AnimateForward());
     }
+
     private void AnimateAll() {
         StartCoroutine(AnimateAllCoroutine());
     }
@@ -68,17 +94,16 @@ public class UIStateAnimator : MonoBehaviour {
         yield return new WaitForEndOfFrame();
 
         for (int i = state; i < maxState; i++) {
-            yield return StartCoroutine(Animate()); // Aguarda o término de Animate antes de continuar
+            yield return StartCoroutine(AnimateForward()); // Aguarda o término de Animate antes de continuar
         }
 
         isAnimating = false;
     }
 
-    private IEnumerator Animate() {
+    private IEnumerator AnimateForward() {
         isAnimating = true;
         int currentFrame = 0;
 
-        Debug.Log("animate");
         while (currentFrame < animationFrames[state].frames.Count) {
             if (currentFrame < 0 || currentFrame >= animationFrames[state].frames.Count) {
                 break;
@@ -97,6 +122,4 @@ public class UIStateAnimator : MonoBehaviour {
         isAnimating = false;
         yield break;
     }
-
-
 }

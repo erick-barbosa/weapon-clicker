@@ -1,5 +1,6 @@
 using System.Collections;
 using UnityEngine;
+using UnityEngine.UIElements.Experimental;
 
 //ABSTRACTION
 public class Weapon {
@@ -24,8 +25,30 @@ public class Weapon {
     public int SpendResourceValue { get; protected set; } = 1;
     public bool IsRecovering{ get; protected set; }
 
+    protected int currentCombo;
+    protected float comboResetTime = 1.0f; // Tempo máximo entre ataques do combo
+    protected Coroutine resetComboCoroutine;
+
     public virtual bool Attack() {
-        return SpendResource(SpendResourceValue);
+        if (SpendResource(SpendResourceValue)) {
+            UIStateAnimator animator = WeaponUIController.Instance.stateAnimator;
+            CoroutineManager coroutineManager = CoroutineManager.Instance;
+
+            if (currentCombo >= 3) {
+                ResetCombo();
+            }
+
+            currentCombo++;
+            animator.SetNextState();
+
+            if (resetComboCoroutine != null) {
+                coroutineManager.StopCoroutine(resetComboCoroutine);
+            }
+            resetComboCoroutine = coroutineManager.StartCoroutine(ResetComboAfterDelay());
+            return true;
+        }
+
+        return false;
     }
 
     public virtual void RecoverResource(int amout) {
@@ -69,5 +92,27 @@ public class Weapon {
         if (Resource < MaxResource) {
             CoroutineManager.Instance.StartResourceRecovering(RecoverResourceOverTime());
         }
+    }
+
+    private IEnumerator ResetComboAfterDelay() {
+        yield return new WaitForSeconds(comboResetTime);
+        ResetCombo();
+    }
+
+    private void ResetCombo() {
+        UIStateAnimator animator = WeaponUIController.Instance.stateAnimator;
+
+        animator.ResetState();
+        currentCombo = 0;
+    }
+
+    public int GetCurrentCombo() {
+        return currentCombo;
+    }
+
+    public enum Type {
+        Instant,
+        Charge,
+        Constant
     }
 }

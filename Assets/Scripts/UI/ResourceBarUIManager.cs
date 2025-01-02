@@ -57,7 +57,7 @@ public class ResourceBarUIManager : MonoBehaviour {
 
             if (resource.activeSelf) {
                 // Alterar o sprite dependendo do recurso estar cheio ou vazio
-                var image = resource.GetComponent<Image>();
+                var image = resource.GetComponentInChildren<Image>();
                 image.sprite = i < currentResourceValue ? fullSprite : emptySprite;
             }
         }
@@ -81,7 +81,7 @@ public class ResourceBarUIManager : MonoBehaviour {
             if (!resource.activeSelf)
                 continue;
 
-            var image = resource.GetComponent<Image>();
+            var image = resource.GetComponentInChildren<Image>();
 
             // Exibe previewSprite apenas para os recursos que seriam gastos
             if (i >= previewResource && i < currentResourceValue) {
